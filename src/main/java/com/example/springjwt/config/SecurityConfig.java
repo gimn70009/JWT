@@ -1,16 +1,33 @@
 package com.example.springjwt.config;
 
+import com.example.springjwt.jwt.LoginFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration // 이 클래스가 스프링 부트한테 Configuration 클래스로 관리하기 위함
 @EnableWebSecurity // 이 클래스는 Security를 위한 Config이기 때문
 public class SecurityConfig {
+
+    private final AuthenticationConfiguration authenticationConfiguration;
+
+    public SecurityConfig(AuthenticationConfiguration authenticationConfiguration) {
+        this.authenticationConfiguration = authenticationConfiguration;
+    }
+
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
+
+        return configuration.getAuthenticationManager();
+    }
 
     @Bean
     public BCryptPasswordEncoder bCryptPasswordEncoder() { // 암호화
@@ -39,6 +56,9 @@ public class SecurityConfig {
                         .requestMatchers("/login", "/", "/join").permitAll() // 해당 경로에 대해서는 모든 권한을 허용
                         .requestMatchers("/admin").hasRole("ADMIN") // /admin 경로는 ADMIN 권한을 가진 사용자만 접근 가능
                         .anyRequest().authenticated()); // 이외의 다른 요청에 대해서는 로그인 한 사용자만 접근 가능
+
+        http
+                .addFilterAt(new LoginFilter(authenticationManager(authenticationConfiguration)), UsernamePasswordAuthenticationFilter.class);
 
         //세션 설정 (중요함. 꼭 STATELESS 상태로 만들어줘야 한다)
         http
